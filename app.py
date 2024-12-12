@@ -6,7 +6,7 @@ from fpdf import FPDF
 from PIL import Image
 import requests
 from io import BytesIO
-
+from collections import Counter
 # Initialize session state for page navigation
 if "page" not in st.session_state:
     st.session_state.page = "home"
@@ -48,12 +48,14 @@ def go_to_page(page):
 def format_steps(steps):
     """
     Splits the steps into new lines if they start with a number.
-    Assumes steps are separated by some form of punctuation (e.g., period, semicolon).
+    Assumes steps are separated by a period followed by a space.
     """
-    import re
-    # Match parts of the string that start with a number followed by a dot or space
-    step_lines = re.split(r'(?<=\d)\.\s*', steps)  
-    formatted_steps = "\n".join([f"{i+1}. {step.strip()}" for i, step in enumerate(step_lines) if step.strip()])
+    # Split the steps based on the pattern of a number followed by a period and space
+    step_lines = steps.split('.')
+    
+    # Format each step and filter out any empty strings
+    formatted_steps = " \n".join([f"{i + 1}. {step.strip()}" for i, step in enumerate(step_lines) if step.strip()])
+    
     return formatted_steps
 
 # Apply Custom CSS
@@ -61,10 +63,39 @@ def apply_custom_css():
     st.markdown("""
     <style>
     .block-container {
-        padding: 1rem 2rem;  /* Adjust padding as needed */
+        padding: 2rem 3rem;  /* Increased padding for better spacing */
+        background-color: #FFFFFF;  /* Subtle background color for better readability */
+        border-radius: 10px;  /* Rounded corners for a polished look */
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);  /* Add a soft shadow */
     }
     .stButton > button {
         width: 100%;  /* Make buttons align and occupy full column width */
+        background-color: #4CAF50;  /* Green button */
+        color: white;  /* White text */
+        border: none;  /* No border */
+        padding: 10px 20px;  /* Padding for a better look */
+        font-size: 16px;  /* Larger font size */
+        cursor: pointer;  /* Pointer cursor */
+        border-radius: 5px;  /* Rounded button corners */
+    }
+    .stButton > button:hover {
+        background-color: #45a049;  /* Darker green on hover */
+    }
+    .special-section {
+        background-color: #ffffff;  /* White background for the section */
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;  /* Spacing between sections */
+    }
+    .special-header {
+        font-size: 24px;
+        color: #4CAF50;  /* Green header */
+        margin-bottom: 10px;
+    }
+    .special-content {
+        font-size: 18px;
+        line-height: 1.6;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -119,7 +150,8 @@ def home_page():
             for recipe in matching_recipes:
                 st.subheader(recipe["Name"])
                 st.write(f"*Ingredients:* {recipe['Ingredients']}")
-                st.write(f"*Steps:* {recipe['Steps']}")
+                formatted_steps = format_steps(recipe['Steps'])
+                st.write(f"*Steps:*\n{formatted_steps}")
                 st.write(f"*Background:* {recipe['Background']}")
                 st.write(f"*State:* {recipe['State']}")
                 if recipe['Image'] and recipe['Image'] != "N/A":
@@ -137,15 +169,16 @@ def home_page():
     if recipes:
         i = random.randint(0, len(recipes) - 1)
         random_recipe = recipes[i]
+        formatted_steps = format_steps(random_recipe['Steps'])
         st.markdown(f"""
         *{random_recipe['Name']}*
         - *Ingredients:* {random_recipe['Ingredients']}
-        - *Steps:* {random_recipe['Steps']}
+        - *Steps:* {formatted_steps}
         - *Background:* {random_recipe['Background']}
         """)
     else:
         st.write("No recipes available yet!")
-        
+
     # Flipbook generator
     st.subheader("Generate Recipe Flipbook")
     recipes = load_recipes()
@@ -163,7 +196,7 @@ def home_page():
 
     # Categories Section
     st.subheader("Categories")
-    col1, col2, col3,col4,col5 = st.columns([1,1,1,1, 1])  # Equal column widths
+    col1, col2, col3,col4,col5 = st.columns([1,1,1,1,1])  # Equal column widths
 
     with col1:
         if st.button("Nani's Secrets", key="nani_secrets"):
@@ -172,8 +205,28 @@ def home_page():
         if st.button("Shopping List Generator", key="shopping_list"):
             go_to_page("shopping_list")
     with col5:
-        if st.button("Other Categories"):
-            st.warning("More categories coming soon!")
+        if st.button("View All Recipes",key="view_recipe"):
+            go_to_page("view_recipe")
+
+def view_recipe_page():
+    st.title("View all Recipes")
+    recipes=load_recipes()
+    for recipe in recipes:
+        col1, col2, = st.columns([1,1])
+        with col1:
+            st.subheader(recipe["Name"])
+            st.write(f"*Ingredients:* {recipe['Ingredients']}")
+            formatted_steps = format_steps(recipe['Steps'])
+            st.write(f"*Steps:*\n{formatted_steps}")
+        with col2:
+            if recipe['Image'] and recipe['Image'] != "N/A":
+                st.image(recipe['Image'], caption=recipe['Name'])
+        st.write(f"*Background:* {recipe['Background']}")
+        st.write(f"*State:* {recipe['State']}")
+        st.write("---")
+    if st.button("Back to Home"):
+        go_to_page("home")
+
 def add_recipe_page():
     st.title("Add Your Recipe")
     with st.form("add_recipe_form"):
@@ -274,3 +327,5 @@ elif st.session_state.page == "nani_secrets":
     nani_secrets_page()
 elif st.session_state.page == "shopping_list":
     shopping_list_page()
+elif st.session_state.page == "view_recipe":
+    view_recipe_page()
