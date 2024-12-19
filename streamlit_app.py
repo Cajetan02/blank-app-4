@@ -100,23 +100,55 @@ def apply_custom_css():
     </style>
     """, unsafe_allow_html=True)
 
+class PDF(FPDF):
+    def header(self):
+        self.set_font("Arial", "B", 12)
+        self.cell(0, 10, "Recipe Flipbook", 0, 1, "C")
+
+    def footer(self):
+        self.set_y(-15)
+        self.set_font("Arial", "I", 8)
+        self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
+
 def generate_flipbook(recipes, states):
     """Generates a PDF flipbook of recipes for the selected states."""
-    pdf = FPDF()
+    pdf = PDF()
     pdf.set_auto_page_break(auto=True, margin=15)
 
+    # Create the front page
     pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, txt=f"Recipes from {', '.join(states)}", ln=True, align="C")
+    pdf.set_fill_color(240, 240, 240)  # Light gray background
+    pdf.rect(0, 0, pdf.w, pdf.h, 'F')  # Fill the background
 
+    # Title
+    pdf.set_font("Arial", "B", 24)
+    pdf.cell(0, 40, 'Welcome to My Recipe Book', 0, 1, 'C')
+
+    # Subtitle
+    pdf.set_font("Arial", "I", 16)
+    pdf.cell(0, 10, 'Delicious Recipes for Every Occasion', 0, 1, 'C')
+
+    # Add an image (optional)
+    pdf.image('cover_image.jpg', x=30, y=60, w=150)  # Adjust path and size
+
+    # Additional information
+    pdf.set_font("Arial", "U", 14)
+    pdf.cell(0, 20, 'Compiled by: C-10', 0, 1, 'C')
+
+    # Add a page for recipes
     for recipe in recipes:
         pdf.add_page()
-        pdf.set_font("Arial", size=14)
-        pdf.cell(200, 10, txt=recipe["Name"], ln=True, align="C")
+        pdf.set_fill_color(255, 255, 255)  # White background
+        pdf.rect(0, 0, pdf.w, pdf.h, 'F')  # Fill the background
 
+        # Recipe Name
+        pdf.set_font("Arial", "B", 18)  # Larger font for recipe name
+        pdf.cell(0, 10, txt=recipe["Name"], ln=True, align="C")
+
+        # Ingredients and Steps
         pdf.set_font("Arial", size=12)
-        pdf.multi_cell(0, 10, txt=f"Ingredients: {recipe['Ingredients']}\n\nSteps:\n{recipe['Steps']}\n\nBackground: {recipe['Background']}")
-
+        
+        # Add image on the left
         if recipe['Image'] and recipe['Image'] != "N/A":
             try:
                 response = requests.get(recipe['Image'])
@@ -124,11 +156,20 @@ def generate_flipbook(recipes, states):
                     img = Image.open(BytesIO(response.content))
                     img_path = f"temp_{recipe['Name']}.jpg"
                     img.save(img_path)
-                    pdf.image(img_path, x=10, y=None, w=100)
+
+                    # Add image with aspect ratio
+                    pdf.image(img_path, x=10, y=30, w=60)  # Adjust width as needed
                     os.remove(img_path)
             except Exception as e:
                 print(f"Error adding image for {recipe['Name']}: {e}")
 
+        # Move cursor to the right of the image
+        pdf.set_x(80)  # Move to the right of the image
+
+        # Multi-cell for wrapping text
+        formatted_steps = format_steps(recipe['Steps'])
+        pdf.multi_cell(0, 10, txt=f"Ingredients:\n\n\n\n{recipe['Ingredients']}\n", align="L")
+        pdf.multi_cell(0, 10, txt=f"\n\n\n\n\n\n\nSteps:\n{formatted_steps}\n\nBackground:\n{recipe['Background']}", align="L")
     pdf_output = "flipbook.pdf"
     pdf.output(pdf_output)
     return pdf_output
