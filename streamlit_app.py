@@ -168,8 +168,8 @@ def generate_flipbook(recipes, states):
 
         # Multi-cell for wrapping text
         formatted_steps = format_steps(recipe['Steps'])
-        pdf.multi_cell(0, 10, txt=f"Ingredients:\n\n\n\n{recipe['Ingredients']}\n", align="L")
-        pdf.multi_cell(0, 10, txt=f"\n\n\n\n\n\n\nSteps:\n{formatted_steps}\n\nBackground:\n{recipe['Background']}", align="L")
+        pdf.multi_cell(0, 10, txt=f"\nIngredients:\n{recipe['Ingredients']}\n", align="L")
+        pdf.multi_cell(0, 10, txt=f"\n\n\nSteps:\n{formatted_steps}\n\nBackground:\n{recipe['Background']}", align="L")
     pdf_output = "flipbook.pdf"
     pdf.output(pdf_output)
     return pdf_output
